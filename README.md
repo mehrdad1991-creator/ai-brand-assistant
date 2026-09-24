@@ -51,6 +51,27 @@ The tool supports both **English and Persian** input, automatically matching the
 | **Dev Tools** | Cursor, Claude, VS Code |
 | **Environment** | Docker-ready, `.env`-based configuration |
 
----
-
 ## Architecture
+
+```
+User Input (Business Description)
+        |
+        v
++-----------------------+
+|   FastAPI Backend     |
+|   /api/generate       |
++-----------+-----------+
+            |
+            +--> brand_kit.py -------> AI Gateway (Text) ----> Structured JSON
+            |
+            +--> logo_generator.py --> AI Gateway (Image) ---> Logo URL
+            |
+            v
+     Combined JSON Response
+            |
+            v
++-----------------------+
+|   Frontend (HTML/JS)  |
+|   Renders Brand Kit   |
++-----------------------+
+```
