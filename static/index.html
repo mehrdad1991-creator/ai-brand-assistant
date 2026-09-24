@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Brand Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-4xl mx-auto px-6 py-6">
+            <h1 class="text-3xl font-bold text-gray-800">AI Brand Assistant</h1>
+            <p class="text-gray-500 mt-1">Describe your business. Get a complete brand starter kit in seconds.</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-10">
+
+        <!-- Input Form -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                Describe your business
+            </label>
+            <textarea
+                id="description"
+                rows="4"
+                class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Example: A cozy, organic coffee shop in Tehran targeting young professionals who love specialty coffee."
+            ></textarea>
+            <button
+                id="generateBtn"
+                onclick="generateBrand()"
+                class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+            >
+                Generate Brand Kit
+            </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="text-gray-500 mt-3">Generating your brand kit...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-8"></div>
+
+        <!-- Results -->
+        <div id="results" class="hidden space-y-6">
+
+            <!-- Brand Names -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Brand Names</h2>
+                <ul id="brandNames" class="space-y-2 text-gray-700"></ul>
+            </div>
+
+            <!-- Taglines -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Taglines</h2>
+                <ul id="taglines" class="space-y-2 text-gray-700"></ul>
+            </div>
+
+            <!-- Social Post -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Social Media Post</h2>
+                <p id="socialPost" class="text-gray-700 leading-relaxed"></p>
+            </div>
+
+            <!-- Color Palette -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Color Palette</h2>
+                <div id="colorPalette" class="grid grid-cols-2 sm:grid-cols-5 gap-4"></div>
+            </div>
+
+            <!-- Font Pairing -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Font Pairing</h2>
+                <p class="text-gray-700"><strong>Headings:</strong> <span id="fontHeading"></span></p>
+                <p class="text-gray-700"><strong>Body:</strong> <span id="fontBody"></span></p>
+            </div>
+
+            <!-- Target Audience -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Target Audience</h2>
+                <p id="targetAudience" class="text-gray-700 leading-relaxed"></p>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        async function generateBrand() {
+            const description = document.getElementById('description').value.trim();
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('results');
+
+            // Reset
+            error.classList.add('hidden');
+            results.classList.add('hidden');
+
+            if (!description) {
+                error.textContent = 'Please enter a business description.';
+                error.classList.remove('hidden');
+                return;
+            }
+
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ business_description: description })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Something went wrong');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (e) {
+                error.textContent = 'Error: ' + e.message;
+                error.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            // Brand Names
+            const namesList = document.getElementById('brandNames');
+            namesList.innerHTML = '';
+            data.brand_names.forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = '• ' + name;
+                namesList.appendChild(li);
+            });
+
+            // Taglines
+            const taglinesList = document.getElementById('taglines');
+            taglinesList.innerHTML = '';
+            data.taglines.forEach(tag => {
+                const li = document.createElement('li');
+                li.textContent = '• ' + tag;
+                taglinesList.appendChild(li);
+            });
+
+            // Social Post
+            document.getElementById('socialPost').textContent = data.social_post;
+
+            // Color Palette
+            const paletteDiv = document.getElementById('colorPalette');
+            paletteDiv.innerHTML = '';
+            data.color_palette.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'text-center';
+                swatch.innerHTML = `
+                    <div class="w-full h-20 rounded-lg border border-gray-200" style="background-color: ${color.hex};"></div>
+                    <p class="text-sm font-medium text-gray-700 mt-2">${color.name}</p>
+                    <p class="text-xs text-gray-500">${color.hex}</p>
+                `;
+                paletteDiv.appendChild(swatch);
+            });
+
+            // Font Pairing
+            document.getElementById('fontHeading').textContent = data.font_pairing.heading;
+            document.getElementById('fontBody').textContent = data.font_pairing.body;
+
+            // Target Audience
+            document.getElementById('targetAudience').textContent = data.target_audience;
+
+            // Show results
+            document.getElementById('results').classList.remove('hidden');
+        }
+    </script>
+
+</body>
+</html>
