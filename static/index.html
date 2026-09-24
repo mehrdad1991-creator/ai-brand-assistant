@@ -41,8 +41,9 @@
 
         <!-- Loading Indicator -->
         <div id="loading" class="hidden text-center py-8">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p class="text-gray-500 mt-3">Generating your brand kit...</p>
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <p id="loadingText" class="text-gray-600 font-medium mt-4">Generating your brand kit...</p>
+            <p class="text-gray-400 text-sm mt-1">This usually takes 20–30 seconds.</p>
         </div>
 
         <!-- Error Message -->
@@ -50,6 +51,14 @@
 
         <!-- Results -->
         <div id="results" class="hidden space-y-6">
+
+            <!-- Logo Concept -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Logo Concept</h2>
+                <div id="logoContainer" class="flex justify-center items-center">
+                    <p class="text-gray-500">Loading logo...</p>
+                </div>
+            </div>
 
             <!-- Brand Names -->
             <div class="bg-white rounded-lg shadow p-6">
@@ -65,7 +74,10 @@
 
             <!-- Social Post -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Social Media Post</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Social Media Post</h2>
+                    <button onclick="copyText('socialPost')" class="text-sm text-blue-600 hover:text-blue-800">Copy</button>
+                </div>
                 <p id="socialPost" class="text-gray-700 leading-relaxed"></p>
             </div>
 
@@ -88,20 +100,31 @@
                 <p id="targetAudience" class="text-gray-700 leading-relaxed"></p>
             </div>
 
+            <!-- Download Button -->
+            <div class="text-center">
+                <button onclick="downloadBrandKit()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition">
+                    Download as JSON
+                </button>
+            </div>
+
         </div>
 
     </main>
 
     <script>
+        let currentBrandKit = null;
+
         async function generateBrand() {
             const description = document.getElementById('description').value.trim();
             const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
             const error = document.getElementById('error');
             const results = document.getElementById('results');
+            const generateBtn = document.getElementById('generateBtn');
 
-            // Reset
             error.classList.add('hidden');
             results.classList.add('hidden');
+            currentBrandKit = null;
 
             if (!description) {
                 error.textContent = 'Please enter a business description.';
@@ -109,7 +132,10 @@
                 return;
             }
 
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
             loading.classList.remove('hidden');
+            loadingText.textContent = 'Generating your brand kit...';
 
             try {
                 const response = await fetch('/api/generate', {
@@ -123,7 +149,9 @@
                     throw new Error(err.detail || 'Something went wrong');
                 }
 
+                loadingText.textContent = 'Creating your logo concept...';
                 const data = await response.json();
+                currentBrandKit = data;
                 displayResults(data);
 
             } catch (e) {
@@ -131,10 +159,29 @@
                 error.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
 
         function displayResults(data) {
+            // Logo
+            const logoContainer = document.getElementById('logoContainer');
+            logoContainer.innerHTML = '<p class="text-gray-500">Loading logo...</p>';
+            if (data.logo_url) {
+                const img = document.createElement('img');
+                img.src = data.logo_url;
+                img.alt = 'Generated Logo Concept';
+                img.className = 'max-w-full h-auto rounded-lg shadow-md';
+                img.referrerPolicy = 'no-referrer';
+                img.onload = function() { logoContainer.innerHTML = ''; logoContainer.appendChild(img); };
+                img.onerror = function() {
+                    logoContainer.innerHTML = '<p class="text-red-500">Image failed to load. <a href="' + data.logo_url + '" target="_blank" class="underline">Open in new tab</a></p>';
+                };
+            } else {
+                logoContainer.innerHTML = '<p class="text-gray-500">Logo could not be generated.</p>';
+            }
+
             // Brand Names
             const namesList = document.getElementById('brandNames');
             namesList.innerHTML = '';
@@ -179,6 +226,24 @@
 
             // Show results
             document.getElementById('results').classList.remove('hidden');
+        }
+
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        function downloadBrandKit() {
+            if (!currentBrandKit) return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentBrandKit, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "brand-kit.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
         }
     </script>
 
